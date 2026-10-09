@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>شفاف · تیترساز</title>
+<meta name="description" content="تیتر شفاف و محوشونده برای ریلز بساز و PNG بی‌پس‌زمینه بگیر؛ مستقیم برای کپ‌کات موبایل.">
+<meta name="theme-color" content="#0F0C0A">
+<meta property="og:title" content="شفاف · تیترساز">
+<meta property="og:description" content="تیتر شفاف برای ریلز، با فونت نیمکت. PNG بی‌پس‌زمینه برای کپ‌کات.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="شفاف">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Poppins:wght@600;700&family=Vazirmatn:wght@400;600;800;900&display=swap">
+<link rel="preload" href="fonts/nimkat.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="brand">
+    <span class="brand-sm">تیترساز</span>
+    <h1 class="brand-big">شفاف</h1>
+  </div>
+  <a class="help-link" href="#howto">توی کپ‌کات چی‌کار کنم؟</a>
+</header>
+
+<main class="app">
+  <section class="stage-col" aria-label="پیش‌نمایش">
+    <div class="stage" id="stage" data-bg="room">
+      <canvas id="cv" aria-label="پیش‌نمایش تیتر"></canvas>
+    </div>
+    <div class="chips" id="bgpick" aria-label="پس‌زمینه‌ی پیش‌نمایش">
+      <button type="button" data-bg="room" aria-pressed="true">اتاق گرم</button>
+      <button type="button" data-bg="grey" aria-pressed="false">طوسی</button>
+      <button type="button" data-bg="yellow" aria-pressed="false">زرد</button>
+      <button type="button" data-bg="white" aria-pressed="false">سفید</button>
+      <label class="file-chip" for="photo">فریم خودم<input type="file" id="photo" accept="image/*"></label>
+    </div>
+    <p class="hint">پس‌زمینه فقط برای دیدنه؛ PNG بی‌پس‌زمینه ذخیره میشه.</p>
+  </section>
+
+  <section class="controls" aria-label="تنظیمات">
+    <div class="card">
+      <h2>متن</h2>
+      <div class="samples" id="samples" aria-label="نمونه‌ها">
+        <button type="button" data-sample="fa1">ببین چی می‌شه اگه</button>
+        <button type="button" data-sample="fa2">کامنت کن</button>
+        <button type="button" data-sample="fa3">تیره روی روشن</button>
+        <button type="button" data-sample="claude">Turn Claude</button>
+        <button type="button" data-sample="nova">“Nova”</button>
+        <button type="button" data-sample="traction">traction</button>
+      </div>
+      <div class="field"><label for="in-small">کلمه‌ی کوچک بالا</label><input type="text" id="in-small" autocomplete="off" enterkeyhint="next"></div>
+      <div class="field"><label for="in-big">کلمه‌ی اصلی</label><input type="text" id="in-big" autocomplete="off" enterkeyhint="next"></div>
+      <div class="field"><label for="in-sub">خط پایین</label><input type="text" id="in-sub" autocomplete="off" enterkeyhint="done"></div>
+    </div>
+
+    <div class="card">
+      <h2>سبک</h2>
+      <div class="presets" id="presets">
+        <button type="button" data-preset="glass" aria-pressed="true"><i class="pv pv-glass"></i><span>سفید شیشه‌ای<small>هوک و CTA</small></span></button>
+        <button type="button" data-preset="frost" aria-pressed="false"><i class="pv pv-frost"></i><span>نیمه‌شفاف<small>روی B-roll</small></span></button>
+        <button type="button" data-preset="ink" aria-pressed="false"><i class="pv pv-ink"></i><span>تیره روی روشن<small>روی گرافیک</small></span></button>
+        <button type="button" data-preset="card" aria-pressed="false"><i class="pv pv-card"></i><span>مشکی روی زرد<small>کارت رنگی</small></span></button>
+      </div>
+      <div class="row-inline">
+        <label for="color">رنگ متن</label>
+        <input type="color" id="color" value="#FFFFFF">
+        <span class="num" id="o-color">#FFFFFF</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>فونت</h2>
+      <div class="seg" id="seg-fa"><span class="lbl">فارسی</span>
+        <button type="button" data-v="nimkat" aria-pressed="true" class="f-nimkat">نیمکت</button>
+        <button type="button" data-v="vazir" aria-pressed="false" class="f-vazir">وزیرمتن</button>
+      </div>
+      <div class="seg" id="seg-en"><span class="lbl">انگلیسی</span>
+        <button type="button" data-v="inter" aria-pressed="true" class="f-inter">Inter Tight</button>
+        <button type="button" data-v="poppins" aria-pressed="false" class="f-poppins">Poppins</button>
+      </div>
+      <div class="font-add">
+        <label class="add-chip" for="font-file">+ افزودن فونت خودم<input type="file" id="font-file"></label>
+        <button type="button" class="link-btn" id="font-clear" hidden>حذف فونت‌های من</button>
+      </div>
+      <p class="hint-s" id="font-msg">فایل ttf، otf یا woff از گوشیت. فقط روی همین دستگاه ذخیره میشه و دفعه‌ی بعد هم هست.</p>
+    </div>
+
+    <div class="card">
+      <h2>شفافیت و فاصله</h2>
+      <div class="sliders">
+        <div class="sl"><div class="sl-row"><label for="r-top">بالای کلمه</label><span class="num" id="o-top">100%</span></div><input type="range" id="r-top" min="10" max="100" value="100"></div>
+        <div class="sl"><div class="sl-row"><label for="r-bot">پایین کلمه</label><span class="num" id="o-bot">68%</span></div><input type="range" id="r-bot" min="5" max="100" value="68"></div>
+        <div class="sl"><div class="sl-row"><label for="r-shadow">سایه</label><span class="num" id="o-shadow">25%</span></div><input type="range" id="r-shadow" min="0" max="60" value="25"></div>
+        <div class="sl"><div class="sl-row"><label for="r-track">فاصله‌ی حروف انگلیسی</label><span class="num" id="o-track">-4%</span></div><input type="range" id="r-track" min="-8" max="4" value="-4"></div>
+        <div class="sl"><div class="sl-row"><label for="r-tuck">چسبیدن کلمه‌ی کوچک</label><span class="num" id="o-tuck">8%</span></div><input type="range" id="r-tuck" min="0" max="40" value="8"></div>
+        <div class="sl"><div class="sl-row"><label for="r-gap">فاصله‌ی خط پایین</label><span class="num" id="o-gap">7%</span></div><input type="range" id="r-gap" min="0" max="30" value="7"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>چیدمان</h2>
+      <div class="seg" id="seg-small"><span class="lbl">کلمه‌ی کوچک</span>
+        <button type="button" data-v="right" aria-pressed="true">راست</button><button type="button" data-v="center" aria-pressed="false">وسط</button><button type="button" data-v="left" aria-pressed="false">چپ</button>
+      </div>
+      <div class="seg" id="seg-sub"><span class="lbl">خط پایین</span>
+        <button type="button" data-v="right" aria-pressed="true">راست</button><button type="button" data-v="center" aria-pressed="false">وسط</button><button type="button" data-v="left" aria-pressed="false">چپ</button>
+      </div>
+      <div class="seg" id="seg-q"><span class="lbl">کیفیت</span>
+        <button type="button" data-v="1" aria-pressed="false">معمولی</button><button type="button" data-v="2" aria-pressed="true">بالا ۲×</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="savebar">
+  <button type="button" class="btn" id="save">ذخیره در گالری</button>
+  <span class="status" id="status" aria-live="polite"></span>
+</div>
+
+<section class="result" id="result" hidden>
+  <p>اگه ذخیره نشد، انگشتت رو روی عکس نگه دار و <b>Save Image</b> رو بزن.</p>
+  <img id="result-img" alt="تیتر ساخته‌شده">
+</section>
+
+<section class="howto" id="howto">
+  <h2>توی کپ‌کات</h2>
+  <ol>
+    <li>متن رو بنویس، سبک رو انتخاب کن و <b>ذخیره در گالری</b> رو بزن. توی آیفون از منوی اشتراک‌گذاری <span class="k">Save Image</span> رو بزن؛ توی اندروید فایل میره توی Downloads.</li>
+    <li>کپ‌کات: <span class="k">Overlay → Add overlay</span> و عکس رو انتخاب کن.</li>
+    <li>با دو انگشت اندازه و جاش رو تنظیم کن. تیتر هوک بهتره بالای سر باشه، حدود ۱۴ تا ۲۶ درصدِ بالای کادر، و حدود ۶۵٪ عرض کادر رو بگیره.</li>
+    <li>طول لایه رو روی تایم‌لاین با جمله‌ات یکی کن.</li>
+    <li><span class="k">Animation → In → Fade in</span> با زمان <span class="num">0.3s</span>. انیمیشن خروج نذار؛ با کات بعدی بره.</li>
+    <li>فونت دیگه‌ای می‌خوای؟ توی بخش فونت <b>+ افزودن فونت خودم</b> رو بزن و فایل فونت رو از گوشیت انتخاب کن.</li>
+    <li>متن پشت سوژه: کلیپ اصلی رو <span class="k">Copy</span> کن، کپی رو <span class="k">Overlay</span> کن، روش <span class="k">Remove BG → Auto removal</span> بزن و این لایه رو بالاتر از تیتر بذار.</li>
+  </ol>
+</section>
+
+<footer class="foot">
+  <span>ساخته‌شده برای <a href="https://omidkhavari1708-pixel.github.io/itsomid/" rel="noopener">OMID · itsomid.ai</a></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
