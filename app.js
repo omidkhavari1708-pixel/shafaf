@@ -5,61 +5,55 @@
 
   const FA = /[؀-ۿ]/;
   const TRACK = typeof CanvasRenderingContext2D !== 'undefined' && 'letterSpacing' in CanvasRenderingContext2D.prototype;
-  const BASE = 220; // big-word size in px at 1x; 2x doubles everything
-  const STORE = 'shafaf.v1';
+  const STORE = 'shafaf.v2';
+  const MAX_LINES = 6;
+  const FRAME = 1080; // preview assumes the PNG sits on a 1080-wide frame at 1x
 
-  // single-weight Nimkat must not be asked for a bold weight, or the browser fakes one
+  // single-weight fonts must not be asked for a bold weight, or the browser fakes one
   const FONTS = {
-    nimkat:  { stack: '"Nimkat", "Vazirmatn", "Inter Tight", sans-serif', big: 'normal', small: 'normal' },
-    vazir:   { stack: '"Vazirmatn", "Inter Tight", sans-serif', big: '900', small: '800' },
-    inter:   { stack: '"Inter Tight", "Helvetica Neue", Arial, sans-serif', big: '800', small: '700' },
-    poppins: { stack: '"Poppins", "Helvetica Neue", Arial, sans-serif', big: '700', small: '600' }
+    nimkat:  { stack: '"Nimkat", "Vazirmatn", "Inter Tight", sans-serif', weight: 'normal' },
+    vazir:   { stack: '"Vazirmatn", "Inter Tight", sans-serif', weight: '900' },
+    inter:   { stack: '"Inter Tight", "Helvetica Neue", Arial, sans-serif', weight: '800' },
+    poppins: { stack: '"Poppins", "Helvetica Neue", Arial, sans-serif', weight: '700' }
   };
 
+  // glass: see-through fill plus a bright rim, no dark shadow, so the picture behind shows through
   const PRESETS = {
-    glass: { color: '#FFFFFF', top: 100, bot: 68, shadow: 25, subFade: false, bg: 'room' },
-    frost: { color: '#FFFFFF', top: 58, bot: 50, shadow: 0, subFade: false, bg: 'room' },
-    ink:   { color: '#1F1A17', top: 100, bot: 25, shadow: 0, subFade: true, bg: 'grey' },
-    card:  { color: '#1F1A17', top: 100, bot: 100, shadow: 0, subFade: false, bg: 'yellow' }
+    glass: { color: '#FFFFFF', top: 70, bot: 22, edge: 55, shadow: 0, bg: 'room' },
+    fade:  { color: '#FFFFFF', top: 100, bot: 68, edge: 0, shadow: 20, bg: 'room' },
+    frost: { color: '#FFFFFF', top: 55, bot: 50, edge: 0, shadow: 0, bg: 'room' },
+    ink:   { color: '#1F1A17', top: 100, bot: 25, edge: 0, shadow: 0, bg: 'grey' },
+    card:  { color: '#1F1A17', top: 100, bot: 100, edge: 0, shadow: 0, bg: 'yellow' }
   };
 
   const SAMPLES = {
-    fa1:      { small: 'ببین چی می‌شه اگه', big: 'Claude', sub: 'سناریوهاتو بنویسه', sa: 'right', ba: 'right', preset: 'glass', tuck: 8 },
-    fa2:      { small: 'کامنت کن', big: '«راهنما»', sub: 'تا برات بفرستم', sa: 'center', ba: 'center', preset: 'glass', tuck: 6 },
-    fa3:      { small: 'لایه‌ی ۲', big: 'پلی‌بوک', sub: '', sa: 'right', ba: 'right', preset: 'ink', tuck: 6 },
-    claude:   { small: 'Turn', big: 'Claude', sub: 'into a master scriptwriter', sa: 'left', ba: 'right', preset: 'glass', tuck: 12 },
-    nova:     { small: 'comment', big: '“Nova”', sub: '', sa: 'center', ba: 'center', preset: 'glass', tuck: 8 },
-    traction: { small: 'and when I got', big: 'traction', sub: '', sa: 'left', ba: 'center', preset: 'frost', tuck: 4 }
+    one:  { lines: [['شفاف', 240, 'center']], preset: 'glass', gap: 8 },
+    cta:  { lines: [['کامنت کن', 64, 'center'], ['«راهنما»', 220, 'center']], preset: 'glass', gap: 0 },
+    hook: { lines: [['ببین چی می‌شه اگه', 60, 'right'], ['Claude', 220, 'right'], ['سناریوهاتو بنویسه', 60, 'right']], preset: 'fade', gap: -2 },
+    turn: { lines: [['Turn', 60, 'left'], ['Claude', 220, 'center'], ['into a master scriptwriter', 60, 'right']], preset: 'fade', gap: -4 }
   };
 
-  const st = {
-    preset: 'glass', color: '#FFFFFF', subFade: false,
-    sa: 'right', ba: 'right', bg: 'room',
-    fa: 'nimkat', en: 'inter', q: 2
-  };
+  const st = { preset: 'glass', color: '#FFFFFF', bg: 'room', fa: 'nimkat', en: 'inter', q: 2, lines: [] };
+  let uid = 0;
+  const newLine = (text, size, align) => ({ id: 'l' + (++uid), text, size, align });
 
   const cv = $('#cv');
   const stage = $('#stage');
   const mctx = document.createElement('canvas').getContext('2d');
-
   const num = id => +$(id).value;
 
-  function read() {
+  function globals() {
     return {
-      small: $('#in-small').value.trim(),
-      big: $('#in-big').value.trim(),
-      sub: $('#in-sub').value.trim(),
-      top: num('#r-top'), bot: num('#r-bot'), track: num('#r-track'),
-      shadow: num('#r-shadow'), tuck: num('#r-tuck'), gap: num('#r-gap'),
-      color: st.color, subFade: st.subFade, sa: st.sa, ba: st.ba
+      top: num('#r-top'), bot: num('#r-bot'), edge: num('#r-edge'), shadow: num('#r-shadow'),
+      stretch: num('#r-stretch'), track: num('#r-track'), gap: num('#r-gap'), color: st.color
     };
   }
 
-  function lineFont(text, role, big) {
+  // ---- drawing ----
+  function fontFor(text, px) {
     const fa = FA.test(text);
     const f = FONTS[fa ? st.fa : st.en];
-    const size = role === 'big' ? big : Math.round(big * 0.27);
-    return { fa, size, css: (role === 'big' ? f.big : f.small) + ' ' + size + 'px ' + f.stack };
+    return { fa, size: px, css: f.weight + ' ' + px + 'px ' + f.stack };
   }
   function setup(ctx, f, trackPct) {
     ctx.font = f.css;
@@ -75,8 +69,15 @@
     return { l: m.actualBoundingBoxLeft, r: m.actualBoundingBoxRight, a: m.actualBoundingBoxAscent, d: m.actualBoundingBoxDescent };
   }
   function layer(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return { cv: c, ctx: c.getContext('2d') }; }
+  function drawText(ctx, o, x, y, sx, trackPct, mode, color, lw) {
+    setup(ctx, o.f, trackPct);
+    ctx.save();
+    ctx.setTransform(sx, 0, 0, 1, x, y);
+    if (mode === 'fill') { ctx.fillStyle = color; ctx.fillText(o.text, o.m.l, 0); }
+    else { ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.strokeText(o.text, o.m.l, 0); }
+    ctx.restore();
+  }
 
-  // ask for each face once per text, redraw when it lands
   const asked = new Set();
   function ensureFont(css, text) {
     if (!text || !document.fonts) return;
@@ -87,117 +88,194 @@
   }
 
   function render(target, scale) {
-    const s = read();
+    const k = scale || 1;
+    const g = globals();
     const out = target || cv;
-    const BIG = BASE * (scale || 1);
-    if (!s.big && !s.small && !s.sub) {
+    const items = st.lines.map(l => ({ text: l.text.trim(), size: l.size, align: l.align })).filter(l => l.text);
+    if (!items.length) {
       out.width = 10; out.height = 10; out.getContext('2d').clearRect(0, 0, 10, 10);
+      if (!target) showDims(0, 0);
       return out;
     }
-    const big = s.big || ' ';
-    const bigF = lineFont(big, 'big', BIG);
-    const smF = lineFont(s.small, 'small', BIG);
-    const subF = lineFont(s.sub, 'small', BIG);
-    ensureFont(bigF.css, big); ensureFont(smF.css, s.small); ensureFont(subF.css, s.sub);
+    const sx = g.stretch / 100;
 
-    const bm = meas(big, bigF, s.track);
-    const cap = meas(bigF.fa ? 'ا' : 'H', bigF, 0).a;
-    const sm = s.small ? meas(s.small, smF, s.track * 0.5) : null;
-    const su = s.sub ? meas(s.sub, subF, s.track * 0.5) : null;
+    const ms = items.map(it => {
+      const f = fontFor(it.text, it.size * k);
+      ensureFont(f.css, it.text);
+      const m = meas(it.text, f, g.track);
+      const cap = meas(f.fa ? 'ا' : 'H', f, 0).a;
+      return { ...it, f, m, w: (m.l + m.r) * sx, a: Math.max(m.a, cap * 0.7), d: Math.max(m.d, 0) };
+    });
 
-    // vertical, relative to the big word's baseline
-    const bigTop = -Math.max(bm.a, cap * 0.7);
-    const bigBot = Math.max(bm.d, 0);
-    let top = bigTop, bot = bigBot, smBase = 0, suBase = 0;
-    if (sm) { smBase = -cap * (1 - s.tuck / 100) - BIG * 0.035 - Math.max(sm.d, 0); top = Math.min(top, smBase - sm.a); }
-    if (su) { suBase = bigBot + BIG * (s.gap / 100) + su.a; bot = Math.max(bot, suBase + Math.max(su.d, 0)); }
+    // stack lines top to bottom; the gap is a share of the smaller neighbour, negative tucks them together
+    let y = 0;
+    ms.forEach((o, i) => {
+      if (i > 0) y += g.gap / 100 * Math.min(o.size, ms[i - 1].size) * k;
+      o.top = y; o.base = y + o.a; y = o.base + o.d;
+    });
+    const minTop = Math.min(...ms.map(o => o.top));
+    const totalH = y - minTop;
+    const bw = Math.max(...ms.map(o => o.w));
+    ms.forEach(o => { o.left = o.align === 'left' ? 0 : o.align === 'center' ? (bw - o.w) / 2 : bw - o.w; });
 
-    // horizontal, the big word's ink spans 0..bw
-    const bw = bm.l + bm.r;
-    const place = (m, align) => {
-      const w = m.l + m.r;
-      const left = align === 'left' ? 0 : align === 'center' ? (bw - w) / 2 : bw - w;
-      return { x: left + m.l, left, right: left + w };
-    };
-    const smP = sm ? place(sm, s.sa) : null;
-    const suP = su ? place(su, s.ba) : null;
-    let minX = 0, maxX = bw;
-    [smP, suP].forEach(p => { if (p) { minX = Math.min(minX, p.left); maxX = Math.max(maxX, p.right); } });
+    const maxPx = Math.max(...items.map(it => it.size)) * k;
+    const edgeW = Math.max(1, maxPx * 0.012);
+    const blur = maxPx * 0.12;
+    const pad = Math.ceil(maxPx * 0.04 + (g.edge > 0 ? edgeW * 2 : 0) + (g.shadow > 0 ? blur * 1.4 + maxPx * 0.03 : 0));
+    const W = Math.max(10, Math.ceil(bw + pad * 2));
+    const H = Math.max(10, Math.ceil(totalH + pad * 2));
+    const oy = pad - minTop;
 
-    const pad = Math.round(BIG * 0.3);
-    const W = Math.max(10, Math.ceil(maxX - minX + pad * 2));
-    const H = Math.max(10, Math.ceil(bot - top + pad * 2));
-    const ox = pad - minX, oy = pad - top;
-
-    // big word on its own layer so only it gets the top-to-bottom fade
-    const L1 = layer(W, H), L2 = layer(W, H);
-    if (s.big) {
-      setup(L1.ctx, bigF, s.track);
-      L1.ctx.fillStyle = s.color;
-      L1.ctx.fillText(big, ox + bm.l, oy);
-      const g = L1.ctx.createLinearGradient(0, oy + bigTop, 0, oy + bigBot);
-      g.addColorStop(0, 'rgba(0,0,0,' + (s.top / 100) + ')');
-      g.addColorStop(1, 'rgba(0,0,0,' + (s.bot / 100) + ')');
-      L1.ctx.globalCompositeOperation = 'destination-in';
-      L1.ctx.fillStyle = g;
-      L1.ctx.fillRect(0, 0, W, H);
-    }
-    L2.ctx.fillStyle = s.color;
-    if (sm) { setup(L2.ctx, smF, s.track * 0.5); L2.ctx.globalAlpha = 1; L2.ctx.fillText(s.small, ox + smP.x, oy + smBase); }
-    if (su) { setup(L2.ctx, subF, s.track * 0.5); L2.ctx.globalAlpha = s.subFade ? Math.max(0.2, s.bot / 100 + 0.15) : 1; L2.ctx.fillText(s.sub, ox + suP.x, oy + suBase); }
+    const A = layer(W, H);
+    ms.forEach(o => {
+      const x0 = pad + o.left, yb = oy + o.base;
+      const L = layer(W, H), c = L.ctx;
+      drawText(c, o, x0, yb, sx, g.track, 'fill', g.color);
+      // each line fades over its own letters
+      const gr = c.createLinearGradient(0, oy + o.top, 0, yb + o.d);
+      gr.addColorStop(0, 'rgba(0,0,0,' + (g.top / 100) + ')');
+      gr.addColorStop(1, 'rgba(0,0,0,' + (g.bot / 100) + ')');
+      c.globalCompositeOperation = 'destination-in';
+      c.fillStyle = gr;
+      c.fillRect(0, 0, W, H);
+      c.globalCompositeOperation = 'source-over';
+      if (g.edge > 0) {
+        // rim outside the letters only: stroke, then cut the letter shapes out so joins leave no seams
+        const E = layer(W, H);
+        drawText(E.ctx, o, x0, yb, sx, g.track, 'stroke', g.color, edgeW * 2);
+        E.ctx.globalCompositeOperation = 'destination-out';
+        drawText(E.ctx, o, x0, yb, sx, g.track, 'fill', '#000');
+        c.globalAlpha = g.edge / 100;
+        c.drawImage(E.cv, 0, 0);
+        c.globalAlpha = 1;
+      }
+      A.ctx.drawImage(L.cv, 0, 0);
+    });
 
     out.width = W; out.height = H;
     const c = out.getContext('2d');
     c.clearRect(0, 0, W, H);
-    if (s.shadow > 0) {
-      c.shadowColor = 'rgba(0,0,0,' + (s.shadow / 100) + ')';
-      c.shadowBlur = BIG * 0.12;
-      c.shadowOffsetY = BIG * 0.025;
+    if (g.shadow > 0) {
+      c.shadowColor = 'rgba(0,0,0,' + (g.shadow / 100) + ')';
+      c.shadowBlur = blur;
+      c.shadowOffsetY = maxPx * 0.025;
     }
-    c.drawImage(L2.cv, 0, 0);
-    c.drawImage(L1.cv, 0, 0);
-    if (!target) cv.style.width = Math.min(94, W / 1080 * 100 * 0.82).toFixed(2) + '%';
+    c.drawImage(A.cv, 0, 0);
+    if (!target) {
+      cv.style.width = Math.min(96, W / FRAME * 100).toFixed(2) + '%';
+      showDims(W * st.q, H * st.q);
+    }
     return out;
   }
+  function showDims(w, h) { $('#dims').textContent = w ? Math.round(w) + '×' + Math.round(h) + ' px' : ''; }
 
-  let raf = 0;
+  // hidden pages get no animation frames, so fall back to a timer there
+  let pending = false;
   function schedule() {
-    if (raf) return;
-    raf = requestAnimationFrame(() => { raf = 0; render(); save(); });
+    if (pending) return;
+    pending = true;
+    const run = () => { pending = false; render(); save(); };
+    if (document.hidden) setTimeout(run, 0); else requestAnimationFrame(run);
   }
 
-  // ---- per-device memory of the last title ----
+  // ---- lines editor ----
+  function lineRow(line, i) {
+    const row = document.createElement('div');
+    row.className = 'line';
+    row.dataset.id = line.id;
+    row.innerHTML =
+      '<div class="line-top"><input type="text" class="lt" autocomplete="off" enterkeyhint="done">' +
+      '<button type="button" class="del" aria-label="حذف این خط">×</button></div>' +
+      '<div class="line-ctl"><span class="lbl">اندازه</span><input type="range" class="ls" min="24" max="420">' +
+      '<span class="num ls-o"></span><div class="seg mini">' +
+      '<button type="button" data-a="right">راست</button><button type="button" data-a="center">وسط</button><button type="button" data-a="left">چپ</button>' +
+      '</div></div>';
+    const t = row.querySelector('.lt');
+    t.value = line.text;
+    t.setAttribute('aria-label', 'متن خط ' + (i + 1));
+    t.placeholder = i === 0 ? 'یک کلمه بنویس' : 'متن این خط';
+    row.querySelector('.ls').setAttribute('aria-label', 'اندازه‌ی خط ' + (i + 1));
+    return row;
+  }
+  function byId(id) { return st.lines.find(l => l.id === id); }
+  function buildLines() {
+    const box = $('#lines');
+    box.textContent = '';
+    st.lines.forEach((l, i) => box.appendChild(lineRow(l, i)));
+    syncLines();
+  }
+  function syncLines() {
+    $$('.line').forEach(row => {
+      const l = byId(row.dataset.id);
+      if (!l) return;
+      row.querySelector('.ls').value = l.size;
+      row.querySelector('.ls-o').textContent = l.size;
+      $$('button[data-a]', row).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.a === l.align)));
+      row.querySelector('.del').hidden = st.lines.length < 2;
+    });
+    $('#add-line').hidden = st.lines.length >= MAX_LINES;
+  }
+  $('#lines').addEventListener('input', e => {
+    const row = e.target.closest('.line');
+    const l = row && byId(row.dataset.id);
+    if (!l) return;
+    if (e.target.classList.contains('lt')) l.text = e.target.value;
+    if (e.target.classList.contains('ls')) { l.size = +e.target.value; row.querySelector('.ls-o').textContent = l.size; }
+    schedule();
+  });
+  $('#lines').addEventListener('click', e => {
+    const row = e.target.closest('.line');
+    const l = row && byId(row.dataset.id);
+    if (!l) return;
+    const a = e.target.closest('button[data-a]');
+    if (a) { l.align = a.dataset.a; syncLines(); schedule(); return; }
+    if (e.target.closest('.del') && st.lines.length > 1) {
+      st.lines = st.lines.filter(x => x !== l);
+      buildLines(); schedule();
+    }
+  });
+  $('#add-line').addEventListener('click', () => {
+    if (st.lines.length >= MAX_LINES) return;
+    const last = st.lines[st.lines.length - 1];
+    st.lines.push(newLine('', Math.max(40, Math.round((last ? last.size : 220) * 0.35)), last ? last.align : 'center'));
+    buildLines();
+    const inputs = $$('.line .lt');
+    inputs[inputs.length - 1].focus();
+    schedule();
+  });
+
+  // ---- per-device memory ----
   let saveT = 0;
   function save() {
     clearTimeout(saveT);
     saveT = setTimeout(() => {
       try {
-        const s = read();
+        const g = globals();
         localStorage.setItem(STORE, JSON.stringify({
-          small: s.small, big: s.big, sub: s.sub, top: s.top, bot: s.bot, track: s.track, shadow: s.shadow, tuck: s.tuck, gap: s.gap,
-          preset: st.preset, color: st.color, subFade: st.subFade, sa: st.sa, ba: st.ba, fa: st.fa, en: st.en, q: st.q, bg: st.bg === 'photo' ? 'room' : st.bg
+          lines: st.lines.map(l => [l.text, l.size, l.align]),
+          g: { top: g.top, bot: g.bot, edge: g.edge, shadow: g.shadow, stretch: g.stretch, track: g.track, gap: g.gap },
+          preset: st.preset, color: st.color, fa: st.fa, en: st.en, q: st.q, bg: st.bg === 'photo' ? 'room' : st.bg
         }));
       } catch (e) { /* storage blocked */ }
     }, 300);
   }
+  let pendingFonts = null;
   function restore() {
     let d = null;
     try { d = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { d = null; }
-    if (!d) return false;
-    $('#in-small').value = d.small || ''; $('#in-big').value = d.big || ''; $('#in-sub').value = d.sub || '';
-    ['top', 'bot', 'track', 'shadow', 'tuck', 'gap'].forEach(k => { if (d[k] !== undefined) $('#r-' + k).value = d[k]; });
+    if (!d || !Array.isArray(d.lines) || !d.lines.length) return false;
+    st.lines = d.lines.slice(0, MAX_LINES).map(x => newLine(String(x[0] || ''), +x[1] || 220, x[2] || 'center'));
+    const g = d.g || {};
+    ['top', 'bot', 'edge', 'shadow', 'stretch', 'track', 'gap'].forEach(key => { if (g[key] !== undefined) $('#r-' + key).value = g[key]; });
     st.preset = PRESETS[d.preset] ? d.preset : 'glass';
-    st.subFade = !!d.subFade;
     setColor(d.color || PRESETS[st.preset].color);
     setPressed($('#presets'), 'data-preset', st.preset);
-    setSeg('#seg-small', 'sa', d.sa || 'right');
-    setSeg('#seg-sub', 'ba', d.ba || 'right');
     setSeg('#seg-fa', 'fa', FONTS[d.fa] ? d.fa : 'nimkat');
     setSeg('#seg-en', 'en', FONTS[d.en] ? d.en : 'inter');
-    // a user font comes back from IndexedDB later; reselect it then
-    pendingFonts = { fa: d.fa, en: d.en };
     setSeg('#seg-q', 'q', String(d.q || 2));
     setBg(d.bg || 'room');
+    // a user font comes back from IndexedDB later; reselect it then
+    pendingFonts = { fa: d.fa, en: d.en };
     return true;
   }
 
@@ -220,29 +298,29 @@
     $('#color').value = st.color;
     $('#o-color').textContent = st.color;
   }
-  function outputs() {
-    $('#o-top').textContent = num('#r-top') + '%';
-    $('#o-bot').textContent = num('#r-bot') + '%';
-    $('#o-track').textContent = num('#r-track') + '%';
-    $('#o-shadow').textContent = num('#r-shadow') + '%';
-    $('#o-tuck').textContent = num('#r-tuck') + '%';
-    $('#o-gap').textContent = num('#r-gap') + '%';
-  }
+  const SLIDERS = ['top', 'bot', 'edge', 'shadow', 'stretch', 'track', 'gap'];
+  function outputs() { SLIDERS.forEach(key => { $('#o-' + key).textContent = num('#r-' + key) + '%'; }); }
   function applyPreset(name) {
     const p = PRESETS[name];
-    st.preset = name; st.subFade = p.subFade;
+    st.preset = name;
     setColor(p.color);
-    $('#r-top').value = p.top; $('#r-bot').value = p.bot; $('#r-shadow').value = p.shadow;
+    $('#r-top').value = p.top; $('#r-bot').value = p.bot; $('#r-edge').value = p.edge; $('#r-shadow').value = p.shadow;
     setPressed($('#presets'), 'data-preset', name);
     if (st.bg !== 'photo') setBg(p.bg);
     outputs(); schedule();
   }
+  function applySample(name) {
+    const s = SAMPLES[name];
+    st.lines = s.lines.map(x => newLine(x[0], x[1], x[2]));
+    $('#r-gap').value = s.gap;
+    buildLines();
+    applyPreset(s.preset);
+  }
 
-  ['#in-small', '#in-big', '#in-sub'].forEach(id => $(id).addEventListener('input', schedule));
-  ['#r-top', '#r-bot', '#r-track', '#r-shadow', '#r-tuck', '#r-gap'].forEach(id => $(id).addEventListener('input', () => { outputs(); schedule(); }));
+  SLIDERS.forEach(key => $('#r-' + key).addEventListener('input', () => { outputs(); schedule(); }));
   $('#color').addEventListener('input', e => { setColor(e.target.value); schedule(); });
   $('#presets').addEventListener('click', e => { const b = e.target.closest('button[data-preset]'); if (b) applyPreset(b.dataset.preset); });
-  [['#seg-small', 'sa'], ['#seg-sub', 'ba'], ['#seg-fa', 'fa'], ['#seg-en', 'en'], ['#seg-q', 'q']].forEach(([sel, key]) => {
+  [['#seg-fa', 'fa'], ['#seg-en', 'en'], ['#seg-q', 'q']].forEach(([sel, key]) => {
     $(sel).addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) { setSeg(sel, key, b.dataset.v); schedule(); } });
   });
   $('#bgpick').addEventListener('click', e => { const b = e.target.closest('button[data-bg]'); if (b) { setBg(b.dataset.bg); save(); } });
@@ -256,17 +334,9 @@
     st.bg = 'photo'; stage.dataset.bg = 'photo';
     setPressed($('#bgpick'), 'data-bg', '');
   });
-  $('#samples').addEventListener('click', e => {
-    const b = e.target.closest('button[data-sample]');
-    if (!b) return;
-    const s = SAMPLES[b.dataset.sample];
-    $('#in-small').value = s.small; $('#in-big').value = s.big; $('#in-sub').value = s.sub;
-    $('#r-tuck').value = s.tuck;
-    setSeg('#seg-small', 'sa', s.sa); setSeg('#seg-sub', 'ba', s.ba);
-    applyPreset(s.preset);
-  });
+  $('#samples').addEventListener('click', e => { const b = e.target.closest('button[data-sample]'); if (b) applySample(b.dataset.sample); });
 
-  // ---- saving ----
+  // ---- saving: always a transparent PNG ----
   const toBlob = c => new Promise(res => c.toBlob(res, 'image/png'));
   const status = t => { $('#status').textContent = t; };
   let resultUrl = '';
@@ -277,8 +347,8 @@
     $('#result').hidden = false;
   }
   function fileName() {
-    const raw = $('#in-big').value.trim();
-    const slug = raw.normalize('NFKD').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+    const first = (st.lines.find(l => l.text.trim()) || { text: '' }).text.trim();
+    const slug = first.normalize('NFKD').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
     const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, '');
     return 'shafaf-' + (slug || 'title') + '-' + stamp + '.png';
   }
@@ -290,6 +360,7 @@
     status('در حال ساخت…');
     try {
       if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) { /* ignore */ } }
+      if (!st.lines.some(l => l.text.trim())) { status('اول یک کلمه بنویس.'); return; }
       const c = render(document.createElement('canvas'), st.q);
       const blob = await toBlob(c);
       if (!blob) { status('ساخت عکس نشد. متن رو کوتاه‌تر کن و دوباره بزن.'); return; }
@@ -314,8 +385,7 @@
     }
   });
 
-  // ---- fonts the viewer adds, kept in this browser only ----
-  let pendingFonts = null;
+  // ---- fonts the viewer adds: stored only in this browser, never uploaded ----
   const DB_NAME = 'shafaf-fonts';
   function idb() {
     return new Promise((res, rej) => {
@@ -340,7 +410,7 @@
     const face = new FontFace(fam, rec.buf);
     await face.load();
     document.fonts.add(face);
-    FONTS[rec.id] = { stack: '"' + fam + '", "Vazirmatn", "Inter Tight", sans-serif', big: 'normal', small: 'normal', user: true };
+    FONTS[rec.id] = { stack: '"' + fam + '", "Vazirmatn", "Inter Tight", sans-serif', weight: 'normal', user: true };
     ['#seg-fa', '#seg-en'].forEach(sel => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -371,13 +441,14 @@
       fontMsg('این فایل فونت باز نشد. یک فایل ttf، otf، woff یا woff2 انتخاب کن.');
       return;
     }
-    // put it on whichever script the main word is written in
-    const isFa = FA.test($('#in-big').value);
+    // put it on whichever script the first line is written in
+    const first = (st.lines.find(l => l.text.trim()) || { text: '' }).text;
+    const isFa = FA.test(first) || !first;
     setSeg(isFa ? '#seg-fa' : '#seg-en', isFa ? 'fa' : 'en', rec.id);
     schedule();
     try {
       await idbRun('readwrite', s => s.put(rec));
-      fontMsg('«' + rec.name + '» اضافه شد و روی این دستگاه می‌مونه.');
+      fontMsg('«' + rec.name + '» اضافه شد. فقط توی مرورگر خودت می‌مونه و برای کسی فرستاده نمیشه.');
     } catch (err) {
       fontMsg('«' + rec.name + '» اضافه شد، ولی این مرورگر اجازه‌ی ذخیره نداد؛ دفعه‌ی بعد دوباره اضافه‌اش کن.');
     }
@@ -408,14 +479,9 @@
     if (recs.length) schedule();
   }
 
-  // ---- start ----
-  if (!restore()) {
-    const s = SAMPLES.fa1;
-    $('#in-small').value = s.small; $('#in-big').value = s.big; $('#in-sub').value = s.sub;
-    $('#r-tuck').value = s.tuck;
-    setSeg('#seg-small', 'sa', s.sa); setSeg('#seg-sub', 'ba', s.ba);
-    applyPreset(s.preset);
-  }
+  // ---- start: one word, glass ----
+  if (restore()) buildLines();
+  else applySample('one');
   outputs();
   render();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);

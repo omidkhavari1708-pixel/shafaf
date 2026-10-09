@@ -37,34 +37,34 @@
     </div>
     <div class="chips" id="bgpick" aria-label="پس‌زمینه‌ی پیش‌نمایش">
       <button type="button" data-bg="room" aria-pressed="true">اتاق گرم</button>
+      <button type="button" data-bg="checker" aria-pressed="false">شطرنجی</button>
       <button type="button" data-bg="grey" aria-pressed="false">طوسی</button>
       <button type="button" data-bg="yellow" aria-pressed="false">زرد</button>
       <button type="button" data-bg="white" aria-pressed="false">سفید</button>
-      <label class="file-chip" for="photo">فریم خودم<input type="file" id="photo" accept="image/*"></label>
+      <label class="file-chip" for="photo">عکس خودم<input type="file" id="photo" accept="image/*"></label>
     </div>
-    <p class="hint">پس‌زمینه فقط برای دیدنه؛ PNG بی‌پس‌زمینه ذخیره میشه.</p>
+    <p class="hint">پس‌زمینه فقط برای دیدنه و توی فایل نمیره. «شطرنجی» یعنی جایی که شفافه.</p>
   </section>
 
   <section class="controls" aria-label="تنظیمات">
     <div class="card">
-      <h2>متن</h2>
-      <div class="samples" id="samples" aria-label="نمونه‌ها">
-        <button type="button" data-sample="fa1">ببین چی می‌شه اگه</button>
-        <button type="button" data-sample="fa2">کامنت کن</button>
-        <button type="button" data-sample="fa3">تیره روی روشن</button>
-        <button type="button" data-sample="claude">Turn Claude</button>
-        <button type="button" data-sample="nova">“Nova”</button>
-        <button type="button" data-sample="traction">traction</button>
+      <div class="card-head"><h2>متن</h2><span class="hint-s">هر خط اندازه‌ی خودش رو داره</span></div>
+      <div id="lines" class="lines"></div>
+      <button type="button" class="add-line" id="add-line">+ خط جدید</button>
+      <div class="samples" id="samples" aria-label="نمونه‌های آماده">
+        <span class="lbl">نمونه:</span>
+        <button type="button" data-sample="one">یک کلمه</button>
+        <button type="button" data-sample="cta">کامنت کن</button>
+        <button type="button" data-sample="hook">ببین چی می‌شه اگه</button>
+        <button type="button" data-sample="turn">Turn Claude</button>
       </div>
-      <div class="field"><label for="in-small">کلمه‌ی کوچک بالا</label><input type="text" id="in-small" autocomplete="off" enterkeyhint="next"></div>
-      <div class="field"><label for="in-big">کلمه‌ی اصلی</label><input type="text" id="in-big" autocomplete="off" enterkeyhint="next"></div>
-      <div class="field"><label for="in-sub">خط پایین</label><input type="text" id="in-sub" autocomplete="off" enterkeyhint="done"></div>
     </div>
 
     <div class="card">
       <h2>سبک</h2>
       <div class="presets" id="presets">
-        <button type="button" data-preset="glass" aria-pressed="true"><i class="pv pv-glass"></i><span>سفید شیشه‌ای<small>هوک و CTA</small></span></button>
+        <button type="button" data-preset="glass" aria-pressed="true"><i class="pv pv-glass"></i><span>شیشه‌ای<small>پشتش دیده میشه</small></span></button>
+        <button type="button" data-preset="fade" aria-pressed="false"><i class="pv pv-fade"></i><span>سفید محو<small>هوک و CTA</small></span></button>
         <button type="button" data-preset="frost" aria-pressed="false"><i class="pv pv-frost"></i><span>نیمه‌شفاف<small>روی B-roll</small></span></button>
         <button type="button" data-preset="ink" aria-pressed="false"><i class="pv pv-ink"></i><span>تیره روی روشن<small>روی گرافیک</small></span></button>
         <button type="button" data-preset="card" aria-pressed="false"><i class="pv pv-card"></i><span>مشکی روی زرد<small>کارت رنگی</small></span></button>
@@ -90,30 +90,27 @@
         <label class="add-chip" for="font-file">+ افزودن فونت خودم<input type="file" id="font-file"></label>
         <button type="button" class="link-btn" id="font-clear" hidden>حذف فونت‌های من</button>
       </div>
-      <p class="hint-s" id="font-msg">فایل ttf، otf یا woff از گوشیت. فقط روی همین دستگاه ذخیره میشه و دفعه‌ی بعد هم هست.</p>
+      <p class="hint-s" id="font-msg">فایل ttf، otf یا woff از گوشیت. فقط توی مرورگر خودت ذخیره میشه و برای هیچ‌کس دیگه آپلود یا فرستاده نمیشه.</p>
     </div>
 
     <div class="card">
-      <h2>شفافیت و فاصله</h2>
+      <h2>شفافیت</h2>
       <div class="sliders">
-        <div class="sl"><div class="sl-row"><label for="r-top">بالای کلمه</label><span class="num" id="o-top">100%</span></div><input type="range" id="r-top" min="10" max="100" value="100"></div>
-        <div class="sl"><div class="sl-row"><label for="r-bot">پایین کلمه</label><span class="num" id="o-bot">68%</span></div><input type="range" id="r-bot" min="5" max="100" value="68"></div>
-        <div class="sl"><div class="sl-row"><label for="r-shadow">سایه</label><span class="num" id="o-shadow">25%</span></div><input type="range" id="r-shadow" min="0" max="60" value="25"></div>
-        <div class="sl"><div class="sl-row"><label for="r-track">فاصله‌ی حروف انگلیسی</label><span class="num" id="o-track">-4%</span></div><input type="range" id="r-track" min="-8" max="4" value="-4"></div>
-        <div class="sl"><div class="sl-row"><label for="r-tuck">چسبیدن کلمه‌ی کوچک</label><span class="num" id="o-tuck">8%</span></div><input type="range" id="r-tuck" min="0" max="40" value="8"></div>
-        <div class="sl"><div class="sl-row"><label for="r-gap">فاصله‌ی خط پایین</label><span class="num" id="o-gap">7%</span></div><input type="range" id="r-gap" min="0" max="30" value="7"></div>
+        <div class="sl"><div class="sl-row"><label for="r-top">بالای حروف</label><span class="num" id="o-top">70%</span></div><input type="range" id="r-top" min="5" max="100" value="70"></div>
+        <div class="sl"><div class="sl-row"><label for="r-bot">پایین حروف</label><span class="num" id="o-bot">22%</span></div><input type="range" id="r-bot" min="0" max="100" value="22"></div>
+        <div class="sl"><div class="sl-row"><label for="r-edge">لبه‌ی شیشه</label><span class="num" id="o-edge">55%</span></div><input type="range" id="r-edge" min="0" max="100" value="55"></div>
+        <div class="sl"><div class="sl-row"><label for="r-shadow">سایه</label><span class="num" id="o-shadow">0%</span></div><input type="range" id="r-shadow" min="0" max="60" value="0"></div>
       </div>
     </div>
 
     <div class="card">
-      <h2>چیدمان</h2>
-      <div class="seg" id="seg-small"><span class="lbl">کلمه‌ی کوچک</span>
-        <button type="button" data-v="right" aria-pressed="true">راست</button><button type="button" data-v="center" aria-pressed="false">وسط</button><button type="button" data-v="left" aria-pressed="false">چپ</button>
+      <h2>حروف و فاصله</h2>
+      <div class="sliders">
+        <div class="sl"><div class="sl-row"><label for="r-stretch">پهنای حروف</label><span class="num" id="o-stretch">100%</span></div><input type="range" id="r-stretch" min="60" max="140" value="100"></div>
+        <div class="sl"><div class="sl-row"><label for="r-track">فاصله‌ی حروف انگلیسی</label><span class="num" id="o-track">-4%</span></div><input type="range" id="r-track" min="-8" max="10" value="-4"></div>
+        <div class="sl"><div class="sl-row"><label for="r-gap">فاصله‌ی خط‌ها</label><span class="num" id="o-gap">8%</span></div><input type="range" id="r-gap" min="-40" max="60" value="8"></div>
       </div>
-      <div class="seg" id="seg-sub"><span class="lbl">خط پایین</span>
-        <button type="button" data-v="right" aria-pressed="true">راست</button><button type="button" data-v="center" aria-pressed="false">وسط</button><button type="button" data-v="left" aria-pressed="false">چپ</button>
-      </div>
-      <div class="seg" id="seg-q"><span class="lbl">کیفیت</span>
+      <div class="seg" id="seg-q"><span class="lbl">کیفیت فایل</span>
         <button type="button" data-v="1" aria-pressed="false">معمولی</button><button type="button" data-v="2" aria-pressed="true">بالا ۲×</button>
       </div>
     </div>
@@ -122,20 +119,22 @@
 
 <div class="savebar">
   <button type="button" class="btn" id="save">ذخیره در گالری</button>
-  <span class="status" id="status" aria-live="polite"></span>
+  <span class="status" id="status" aria-live="polite">PNG بدون پس‌زمینه · <span class="num" id="dims"></span></span>
 </div>
 
 <section class="result" id="result" hidden>
+  <div class="result-img"><img id="result-img" alt="تیتر ساخته‌شده"></div>
+  <p>این فایل <b>پس‌زمینه نداره</b>؛ خونه‌های شطرنجی یعنی شفاف. اگه توی گالری پشتش سفید یا مشکی دیده میشه، اون رنگ خودِ گالریه. توی کپ‌کات تصویر پشتش دیده میشه.</p>
   <p>اگه ذخیره نشد، انگشتت رو روی عکس نگه دار و <b>Save Image</b> رو بزن.</p>
-  <img id="result-img" alt="تیتر ساخته‌شده">
 </section>
 
 <section class="howto" id="howto">
   <h2>توی کپ‌کات</h2>
   <ol>
-    <li>متن رو بنویس، سبک رو انتخاب کن و <b>ذخیره در گالری</b> رو بزن. توی آیفون از منوی اشتراک‌گذاری <span class="k">Save Image</span> رو بزن؛ توی اندروید فایل میره توی Downloads.</li>
-    <li>کپ‌کات: <span class="k">Overlay → Add overlay</span> و عکس رو انتخاب کن.</li>
-    <li>با دو انگشت اندازه و جاش رو تنظیم کن. تیتر هوک بهتره بالای سر باشه، حدود ۱۴ تا ۲۶ درصدِ بالای کادر، و حدود ۶۵٪ عرض کادر رو بگیره.</li>
+    <li>یک کلمه بنویس و اندازه‌اش رو تنظیم کن. اگه خواستی با <b>+ خط جدید</b> خط‌های بیشتری با اندازه‌ی خودشون اضافه کن.</li>
+    <li>سبک رو انتخاب کن و <b>ذخیره در گالری</b> رو بزن. توی آیفون از منوی اشتراک‌گذاری <span class="k">Save Image</span> رو بزن؛ توی اندروید فایل میره توی Downloads.</li>
+    <li>کپ‌کات: <span class="k">Overlay → Add overlay</span> و عکس رو انتخاب کن. فایل پس‌زمینه نداره، پس ویدیوی زیرش از لای حروف دیده میشه.</li>
+    <li>با دو انگشت اندازه و جاش رو تنظیم کن. تیتر هوک بهتره بالای سر باشه، حدود ۱۴ تا ۲۶ درصدِ بالای کادر.</li>
     <li>طول لایه رو روی تایم‌لاین با جمله‌ات یکی کن.</li>
     <li><span class="k">Animation → In → Fade in</span> با زمان <span class="num">0.3s</span>. انیمیشن خروج نذار؛ با کات بعدی بره.</li>
     <li>فونت دیگه‌ای می‌خوای؟ توی بخش فونت <b>+ افزودن فونت خودم</b> رو بزن و فایل فونت رو از گوشیت انتخاب کن.</li>
